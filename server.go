@@ -1147,7 +1147,7 @@ func (serverObj *Server) GetNodeRole() string {
 			return "SHARD_VALIDATOR"
 		}
 	}
-	shardPendingCommittee := blockchain.GetBestStateBeacon().GetShardPendingValidator()
+	shardPendingCommittee := blockchain.GetBestStateBeacon().GetAllShardPendingValidator()
 	for _, s := range shardPendingCommittee {
 		if common.IndexOfStr(pubkey, s) > -1 {
 			return "SHARD_VALIDATOR"

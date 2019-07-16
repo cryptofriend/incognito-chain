@@ -9,9 +9,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
+	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/transaction"
 	"github.com/incognitochain/incognito-chain/wallet"
@@ -35,7 +35,7 @@ type BestStateShard struct {
 	ShardID                byte              `json:"ShardID"`
 	Epoch                  uint64            `json:"Epoch"`
 	ShardHeight            uint64            `json:"ShardHeight"`
-	ShardCommitteeSize     int               `json:"ShardCommitteeSize"`
+	ShardCommitteeSize     int               `json:"MaxShardCommitteeSize"`
 	ShardProposerIdx       int               `json:"ShardProposerIdx"`
 	ShardCommittee         []string          `json:"ShardCommittee"`
 	ShardPendingValidator  []string          `json:"ShardPendingValidator"`
@@ -167,7 +167,7 @@ func InitBestStateShard(shardID byte, netparam *Params) *BestStateShard {
 	bestStateShard.BestBeaconHash.SetBytes(make([]byte, 32))
 	bestStateShard.BestBlock = nil
 	bestStateShard.ShardCommittee = []string{}
-	bestStateShard.ShardCommitteeSize = netparam.ShardCommitteeSize
+	bestStateShard.ShardCommitteeSize = netparam.MaxShardCommitteeSize
 	bestStateShard.ShardPendingValidator = []string{}
 	bestStateShard.ActiveShards = netparam.ActiveShards
 	bestStateShard.BestCrossShard = make(map[byte]uint64)

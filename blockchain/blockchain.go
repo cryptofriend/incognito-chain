@@ -279,7 +279,7 @@ func (blockchain *BlockChain) initShardState(shardID byte) error {
 
 	_, newShardCandidate := GetStakingCandidate(*blockchain.config.ChainParams.GenesisBeaconBlock)
 
-	blockchain.BestState.Shard[shardID].ShardCommittee = append(blockchain.BestState.Shard[shardID].ShardCommittee, newShardCandidate[int(shardID)*blockchain.config.ChainParams.ShardCommitteeSize:(int(shardID)*blockchain.config.ChainParams.ShardCommitteeSize)+blockchain.config.ChainParams.ShardCommitteeSize]...)
+	blockchain.BestState.Shard[shardID].ShardCommittee = append(blockchain.BestState.Shard[shardID].ShardCommittee, newShardCandidate[int(shardID)*blockchain.config.ChainParams.MaxShardCommitteeSize:(int(shardID)*blockchain.config.ChainParams.MaxShardCommitteeSize)+blockchain.config.ChainParams.MaxShardCommitteeSize]...)
 
 	genesisBeaconBlk, err := blockchain.GetBeaconBlockByHeight(1)
 	if err != nil {
@@ -294,15 +294,22 @@ func (blockchain *BlockChain) initShardState(shardID byte) error {
 }
 
 func (blockchain *BlockChain) initBeaconState() error {
+	// Init beacon best state
 	blockchain.BestState.Beacon = InitBestStateBeacon(blockchain.config.ChainParams)
+	if err := blockchain.BestState.Beacon.CheckCommitteeSize(); err != nil {
+		return err
+	}
+	// update block chain with init block
 	initBlock := blockchain.config.ChainParams.GenesisBeaconBlock
-	blockchain.BestState.Beacon.Update(initBlock, blockchain)
-
+	if err := blockchain.BestState.Beacon.Update(initBlock); err != nil {
+		return err
+	}
 	// Insert new block into beacon chain
 	if err := blockchain.StoreBeaconBestState(); err != nil {
 		Logger.log.Error("Error Store best state for block", blockchain.BestState.Beacon.BestBlockHash, "in beacon chain")
 		return NewBlockChainError(UnExpectedError, err)
 	}
+	// store current beacon best block
 	if err := blockchain.config.DataBase.StoreBeaconBlock(&blockchain.BestState.Beacon.BestBlock, blockchain.BestState.Beacon.BestBlock.Header.Hash()); err != nil {
 		Logger.log.Error("Error store beacon block", blockchain.BestState.Beacon.BestBlockHash, "in beacon chain")
 		return err
@@ -1203,7 +1210,7 @@ func (blockchain *BlockChain) BuildInstRewardForBeacons(epoch uint64, totalRewar
 	resInst := [][]string{}
 	baseRewards := map[common.Hash]uint64{}
 	for key, value := range totalReward {
-		baseRewards[key] = value / uint64(blockchain.BestState.Beacon.BeaconCommitteeSize)
+		baseRewards[key] = value / uint64(blockchain.BestState.Beacon.MaxBeaconCommitteeSize)
 	}
 	for _, publickeyStr := range blockchain.BestState.Beacon.BeaconCommittee {
 		singleInst, err := metadata.BuildInstForBeaconReward(baseRewards, publickeyStr)

@@ -12,9 +12,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/common"
 	"github.com/incognitochain/incognito-chain/common/base58"
+	"github.com/incognitochain/incognito-chain/incognitokey"
 )
 
 /*
@@ -79,7 +79,7 @@ func (blockchain *BlockChain) VerifyPreSignBeaconBlock(block *BeaconBlock, isCom
 func (blockchain *BlockChain) InsertBeaconBlock(block *BeaconBlock, isValidated bool) error {
 	blockchain.chainLock.Lock()
 	defer blockchain.chainLock.Unlock()
-	
+
 	blockHash := block.Header.Hash()
 	Logger.log.Infof("Check block existence for insert process %d, with hash %+v", block.Header.Height, blockHash)
 	isExist, _ := blockchain.config.DataBase.HasBeaconBlock(block.Header.Hash())
@@ -352,11 +352,11 @@ func (blockchain *BlockChain) VerifyPreProcessingBeaconBlock(block *BeaconBlock,
 				// Only accept block in one epoch
 				for index, shardBlock := range shardBlocks {
 					currentCommittee := blockchain.BestState.Beacon.GetAShardCommittee(shardID)
-					currentPendingValidator := blockchain.BestState.Beacon.GetAShardPendingValidator(shardID)
+					currentPendingValidator := blockchain.BestState.Beacon.GetOneShardPendingValidator(shardID)
 					hash := shardBlock.Header.Hash()
 					err := ValidateAggSignature(shardBlock.ValidatorsIdx, currentCommittee, shardBlock.AggregatedSig, shardBlock.R, &hash)
 					if index == 0 && err != nil {
-						currentCommittee, _, _, _, err = SwapValidator(currentPendingValidator, currentCommittee, blockchain.BestState.Beacon.ShardCommitteeSize, common.OFFSET)
+						currentCommittee, _, _, _, err = SwapValidator(currentPendingValidator, currentCommittee, blockchain.BestState.Beacon.MaxShardCommitteeSize, common.OFFSET)
 						if err != nil {
 							return NewBlockChainError(ShardStateError, errors.New("shardstate fail to verify with ShardToBeacon Block in pool"))
 						}
@@ -551,14 +551,12 @@ func (bestStateBeacon *BestStateBeacon) VerifyPostProcessingBeaconBlock(block *B
 /*
 	Update Beststate with new Block
 */
-func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock, chain *BlockChain) error {
-
+func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 	bestStateBeacon.lockMu.Lock()
 	defer bestStateBeacon.lockMu.Unlock()
-
 	newBeaconCandidate := []string{}
 	newShardCandidate := []string{}
-	// Logger.log.Infof("Start processing new block at height %d, with hash %+v", newBlock.Header.Height, *newBlock.Hash())
+	Logger.log.Debugf("Start processing new block at height %d, with hash %+v", newBlock.Header.Height, *newBlock.Hash())
 	if newBlock == nil {
 		return errors.New("null pointer")
 	}
@@ -708,10 +706,10 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock, chain *Blo
 		// Assign committee with genesis block
 		Logger.log.Infof("Proccessing Genesis Block")
 		//Test with 1 member
-		bestStateBeacon.BeaconCommittee = make([]string, bestStateBeacon.BeaconCommitteeSize)
-		copy(bestStateBeacon.BeaconCommittee, newBeaconCandidate[:bestStateBeacon.BeaconCommitteeSize])
+		bestStateBeacon.BeaconCommittee = make([]string, bestStateBeacon.MaxBeaconCommitteeSize)
+		copy(bestStateBeacon.BeaconCommittee, newBeaconCandidate[:bestStateBeacon.MaxBeaconCommitteeSize])
 		for shardID := 0; shardID < bestStateBeacon.ActiveShards; shardID++ {
-			bestStateBeacon.ShardCommittee[byte(shardID)] = append(bestStateBeacon.ShardCommittee[byte(shardID)], newShardCandidate[shardID*bestStateBeacon.ShardCommitteeSize:(shardID+1)*bestStateBeacon.ShardCommitteeSize]...)
+			bestStateBeacon.ShardCommittee[byte(shardID)] = append(bestStateBeacon.ShardCommittee[byte(shardID)], newShardCandidate[shardID*bestStateBeacon.MaxShardCommitteeSize:(shardID+1)*bestStateBeacon.MaxShardCommitteeSize]...)
 			fmt.Println(bestStateBeacon.ShardCommittee[byte(shardID)])
 		}
 		bestStateBeacon.Epoch = 1
@@ -748,11 +746,6 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock, chain *Blo
 		// assign CandidateShardWaitingForCurrentRandom to ShardPendingValidator with CurrentRandom
 		if randomFlag {
 			bestStateBeacon.IsGetRandomNumber = true
-			//fmt.Println("Beacon Process/Update/RandomFlag: Shard Candidate Waiting for Current Random Number", bestStateBeacon.CandidateShardWaitingForCurrentRandom)
-			//Logger.log.Critical("bestStateBeacon.ShardPendingValidator", bestStateBeacon.ShardPendingValidator)
-			//Logger.log.Critical("bestStateBeacon.CandidateShardWaitingForCurrentRandom", bestStateBeacon.CandidateShardWaitingForCurrentRandom)
-			//Logger.log.Critical("bestStateBeacon.CurrentRandomNumber", bestStateBeacon.CurrentRandomNumber)
-			//Logger.log.Critical("bestStateBeacon.ActiveShards", bestStateBeacon.ActiveShards)
 			err := AssignValidatorShard(bestStateBeacon.ShardPendingValidator, bestStateBeacon.CandidateShardWaitingForCurrentRandom, bestStateBeacon.CurrentRandomNumber, bestStateBeacon.ActiveShards)
 			if err != nil {
 				Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
@@ -760,12 +753,9 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock, chain *Blo
 			}
 			// delete CandidateShardWaitingForCurrentRandom list
 			bestStateBeacon.CandidateShardWaitingForCurrentRandom = []string{}
-			//fmt.Println("Beacon Process/Update/RandomFalg: Shard Pending Validator", bestStateBeacon.ShardPendingValidator)
 			// Shuffle candidate
 			// shuffle CandidateBeaconWaitingForCurrentRandom with current random number
-			//fmt.Println("Beacon Process/Update/RandomFlag: Beacon Candidate Waiting for Current Random Number", bestStateBeacon.CandidateBeaconWaitingForCurrentRandom)
 			newBeaconPendingValidator, err := ShuffleCandidate(bestStateBeacon.CandidateBeaconWaitingForCurrentRandom, bestStateBeacon.CurrentRandomNumber)
-			//fmt.Println("Beacon Process/Update/RandomFalg: NewBeaconPendingValidator", newBeaconPendingValidator)
 			if err != nil {
 				Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
 				return NewBlockChainError(UnExpectedError, err)
@@ -787,7 +777,7 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock, chain *Blo
 			beaconNewCommittees    []string
 			err                    error
 		)
-		bestStateBeacon.BeaconPendingValidator, bestStateBeacon.BeaconCommittee, beaconSwapedCommittees, beaconNewCommittees, err = SwapValidator(bestStateBeacon.BeaconPendingValidator, bestStateBeacon.BeaconCommittee, bestStateBeacon.BeaconCommitteeSize, common.OFFSET)
+		bestStateBeacon.BeaconPendingValidator, bestStateBeacon.BeaconCommittee, beaconSwapedCommittees, beaconNewCommittees, err = SwapValidator(bestStateBeacon.BeaconPendingValidator, bestStateBeacon.BeaconCommittee, bestStateBeacon.MaxBeaconCommitteeSize, common.OFFSET)
 		if err != nil {
 			Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
 			return NewBlockChainError(UnExpectedError, err)

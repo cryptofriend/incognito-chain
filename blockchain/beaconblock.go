@@ -95,19 +95,7 @@ func (beaconBlock *BeaconBlock) UnmarshalJSON(data []byte) error {
 	beaconBlock.R = tempBlk.R
 	beaconBlock.ValidatorsIdx = tempBlk.ValidatorsIdx
 	beaconBlock.ProducerSig = tempBlk.ProducerSig
-	// blkBody := BeaconBody{}
-	// err = blkBody.UnmarshalJSON(tempBlk.Body)
-	// if err != nil {
-	// 	return NewBlockChainError(UnmashallJsonBlockError, err)
-	// }
-	// blkHeader := BeaconHeader{}
-	// err = blkBody.UnmarshalJSON(tempBlk.Header)
-	// if err != nil {
-	// 	return NewBlockChainError(UnmashallJsonBlockError, err)
-	// }
-
 	beaconBlock.Header = tempBlk.Header
-
 	beaconBlock.Body = tempBlk.Body
 	return nil
 }

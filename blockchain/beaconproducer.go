@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	
-	"github.com/incognitochain/incognito-chain/incognitokey"
+
 	"github.com/incognitochain/incognito-chain/common"
+	"github.com/incognitochain/incognito-chain/incognitokey"
 	"github.com/incognitochain/incognito-chain/metadata"
 	"github.com/incognitochain/incognito-chain/privacy"
 )
@@ -109,7 +109,9 @@ func (blkTmplGenerator *BlkTmplGenerator) NewBlockBeacon(producerAddress *privac
 	if len(beaconBlock.Body.Instructions) != 0 {
 		Logger.log.Critical("Beacon Produce: Beacon Instruction", beaconBlock.Body.Instructions)
 	}
-	beaconBestState.Update(beaconBlock, blkTmplGenerator.chain)
+	if err := beaconBestState.Update(beaconBlock); err != nil {
+		panic(err)
+	}
 	//============End Process new block with beststate
 	//==========Create Hash in Header
 	// BeaconValidator root: beacon committee + beacon pending committee
@@ -132,7 +134,7 @@ func (blkTmplGenerator *BlkTmplGenerator) NewBlockBeacon(producerAddress *privac
 		panic(err)
 	}
 	// Shard Validator root
-	beaconBlock.Header.ShardValidatorsRoot, err = GenerateHashFromMapByteString(beaconBestState.GetShardPendingValidator(), beaconBestState.GetShardCommittee())
+	beaconBlock.Header.ShardValidatorsRoot, err = GenerateHashFromMapByteString(beaconBestState.GetAllShardPendingValidator(), beaconBestState.GetShardCommittee())
 	// fmt.Printf("Beacon Produce/AfterUpdate: Shard Pending Validator %+v , ShardCommitee %+v, Shard Validator Root %+v \n", beaconBestState.ShardPendingValidator, beaconBestState.ShardCommittee, beaconBlock.Header.ShardValidatorsRoot)
 	if err != nil {
 		panic(err)
@@ -277,7 +279,7 @@ func (bestStateBeacon *BestStateBeacon) GenerateInstruction(
 	// Beacon normal swap
 	if block.Header.Height%common.EPOCH == 0 {
 		swapBeaconInstructions := []string{}
-		_, _, swappedValidator, beaconNextCommittee, _ := SwapValidator(bestStateBeacon.BeaconPendingValidator, bestStateBeacon.BeaconCommittee, bestStateBeacon.BeaconCommitteeSize, common.OFFSET)
+		_, _, swappedValidator, beaconNextCommittee, _ := SwapValidator(bestStateBeacon.BeaconPendingValidator, bestStateBeacon.BeaconCommittee, bestStateBeacon.MaxBeaconCommitteeSize, common.OFFSET)
 		if len(swappedValidator) > 0 || len(beaconNextCommittee) > 0 {
 			swapBeaconInstructions = append(swapBeaconInstructions, "swap")
 			swapBeaconInstructions = append(swapBeaconInstructions, strings.Join(beaconNextCommittee, ","))
@@ -323,7 +325,7 @@ func (bestStateBeacon *BestStateBeacon) GetValidStakers(tempStaker []string) []s
 	for _, committees := range bestStateBeacon.GetShardCommittee() {
 		tempStaker = metadata.GetValidStaker(committees, tempStaker)
 	}
-	for _, validators := range bestStateBeacon.GetShardPendingValidator() {
+	for _, validators := range bestStateBeacon.GetAllShardPendingValidator() {
 		tempStaker = metadata.GetValidStaker(validators, tempStaker)
 	}
 	tempStaker = metadata.GetValidStaker(bestStateBeacon.BeaconCommittee, tempStaker)
@@ -518,7 +520,7 @@ func (bestStateBeacon *BestStateBeacon) generateRandomInstruction(timestamp int6
 	//strs = append(strs, strconv.Itoa(int(timestamp)))
 	//strs = append(strs, strconv.Itoa(int(chainTimestamp)))
 	//@NOTICE: Hard Code for testing
-	var	strs []string
+	var strs []string
 	reses := []string{"1000", strconv.Itoa(int(timestamp)), strconv.Itoa(int(timestamp) + 1)}
 	strs = append(strs, RandomAction)
 	strs = append(strs, reses...)

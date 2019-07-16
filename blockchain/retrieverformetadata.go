@@ -70,7 +70,7 @@ func (blockchain *BlockChain) GetAllCommitteeValidatorCandidate() (map[byte][]st
 	if blockchain.IsTest {
 		SC := make(map[byte][]string)
 		SPV := make(map[byte][]string)
-		return SC,SPV,[]string{},[]string{},[]string{},[]string{},[]string{},[]string{}
+		return SC, SPV, []string{}, []string{}, []string{}, []string{}, []string{}, []string{}
 	}
 	beaconBestState := BestStateBeacon{}
 	temp, err := blockchain.config.DataBase.FetchBeaconBestState()
@@ -83,7 +83,7 @@ func (blockchain *BlockChain) GetAllCommitteeValidatorCandidate() (map[byte][]st
 		}
 	}
 	SC := beaconBestState.GetShardCommittee()
-	SPV := beaconBestState.GetShardPendingValidator()
+	SPV := beaconBestState.GetAllShardPendingValidator()
 	BC := beaconBestState.BeaconCommittee
 	BPV := beaconBestState.BeaconPendingValidator
 	CBWFCR := beaconBestState.CandidateBeaconWaitingForCurrentRandom

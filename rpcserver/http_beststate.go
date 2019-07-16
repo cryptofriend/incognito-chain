@@ -76,7 +76,7 @@ func (httpServer *HttpServer) handleGetCommitteeList(params interface{}, closeCh
 	beaconCommittee := httpServer.config.BlockChain.BestState.Beacon.BeaconCommittee
 	beaconPendingValidator := httpServer.config.BlockChain.BestState.Beacon.BeaconPendingValidator
 	shardCommittee := httpServer.config.BlockChain.BestState.Beacon.GetShardCommittee()
-	shardPendingValidator := httpServer.config.BlockChain.BestState.Beacon.GetShardPendingValidator()
+	shardPendingValidator := httpServer.config.BlockChain.BestState.Beacon.GetAllShardPendingValidator()
 	epoch := httpServer.config.BlockChain.BestState.Beacon.Epoch
 	result := jsonresult.CommitteeListsResult{
 		Epoch:                  epoch,

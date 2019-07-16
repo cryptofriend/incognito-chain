@@ -101,7 +101,7 @@ func (blockchain *BlockChain) InsertShardBlock(block *ShardBlock, isValidated bo
 	isExist, _ := blockchain.config.DataBase.HasBlock(blockHash)
 	if isExist {
 		//return nil
-		return NewBlockChainError(DuplicateBlockErr, errors.New("This block has been stored already"))
+		return NewBlockChainError(DuplicateBlockError, errors.New("This block has been stored already"))
 	}
 	Logger.log.Infof("SHARD %+v | Begin Insert new block height %+v at hash %+v", block.Header.ShardID, block.Header.Height, blockHash)
 	// Verify block with previous best state

@@ -210,24 +210,24 @@ func (bestStateBeacon *BestStateBeacon) SetMinBeaconCommitteeSize(minBeaconCommi
 	return false
 }
 
-func (bestStateBeacon *BestStateBeacon) CheckCommitteeSize () error {
+func (bestStateBeacon *BestStateBeacon) CheckCommitteeSize() error {
 	if bestStateBeacon.MaxBeaconCommitteeSize < MinCommitteeSize {
-		return NewBlockChainError(UnExpectedError, fmt.Errorf("Expect max beacon size %+v equal or greater than min size %+v", bestStateBeacon.MaxBeaconCommitteeSize, MinCommitteeSize))
+		return NewBlockChainError(CommitteeOrValidatorError, fmt.Errorf("Expect max beacon size %+v equal or greater than min size %+v", bestStateBeacon.MaxBeaconCommitteeSize, MinCommitteeSize))
 	}
 	if bestStateBeacon.MinBeaconCommitteeSize < MinCommitteeSize {
-		return NewBlockChainError(UnExpectedError, fmt.Errorf("Expect min beacon size %+v equal or greater than min size %+v", bestStateBeacon.MinBeaconCommitteeSize, MinCommitteeSize))
+		return NewBlockChainError(CommitteeOrValidatorError, fmt.Errorf("Expect min beacon size %+v equal or greater than min size %+v", bestStateBeacon.MinBeaconCommitteeSize, MinCommitteeSize))
 	}
 	if bestStateBeacon.MaxShardCommitteeSize < MinCommitteeSize {
-		return NewBlockChainError(UnExpectedError, fmt.Errorf("Expect max shard size %+v equal or greater than min size %+v", bestStateBeacon.MaxShardCommitteeSize, MinCommitteeSize))
+		return NewBlockChainError(CommitteeOrValidatorError, fmt.Errorf("Expect max shard size %+v equal or greater than min size %+v", bestStateBeacon.MaxShardCommitteeSize, MinCommitteeSize))
 	}
 	if bestStateBeacon.MinShardCommitteeSize < MinCommitteeSize {
-		return NewBlockChainError(UnExpectedError, fmt.Errorf("Expect min shard size %+v equal or greater than min size %+v", bestStateBeacon.MinShardCommitteeSize, MinCommitteeSize))
+		return NewBlockChainError(CommitteeOrValidatorError, fmt.Errorf("Expect min shard size %+v equal or greater than min size %+v", bestStateBeacon.MinShardCommitteeSize, MinCommitteeSize))
 	}
 	if bestStateBeacon.MaxBeaconCommitteeSize < bestStateBeacon.MinBeaconCommitteeSize {
-		return NewBlockChainError(UnExpectedError, fmt.Errorf("Expect Max beacon size is higher than min beacon size but max is %+v and min is %+v",bestStateBeacon.MaxBeaconCommitteeSize, bestStateBeacon.MinBeaconCommitteeSize))
+		return NewBlockChainError(CommitteeOrValidatorError, fmt.Errorf("Expect Max beacon size is higher than min beacon size but max is %+v and min is %+v", bestStateBeacon.MaxBeaconCommitteeSize, bestStateBeacon.MinBeaconCommitteeSize))
 	}
 	if bestStateBeacon.MaxShardCommitteeSize < bestStateBeacon.MinShardCommitteeSize {
-		return NewBlockChainError(UnExpectedError, fmt.Errorf("Expect Max beacon size is higher than min beacon size but max is %+v and min is %+v", bestStateBeacon.MaxBeaconCommitteeSize, bestStateBeacon.MinBeaconCommitteeSize))
+		return NewBlockChainError(CommitteeOrValidatorError, fmt.Errorf("Expect Max beacon size is higher than min beacon size but max is %+v and min is %+v", bestStateBeacon.MaxBeaconCommitteeSize, bestStateBeacon.MinBeaconCommitteeSize))
 	}
 	return nil
 }

@@ -1,5 +1,9 @@
 package blockchain
 
+import (
+	"github.com/incognitochain/incognito-chain/blockchain/benchmark"
+)
+
 /*
 Params defines a network by its component. These component may be used by Applications
 to differentiate network as well as addresses and keys for one network
@@ -42,7 +46,8 @@ func init() {
 		RandomNumber:                        0,
 		PreSelectBeaconNodeSerializedPubkey: PreSelectBeaconNodeTestnetSerializedPubkey,
 		PreSelectShardNodeSerializedPubkey:  PreSelectShardNodeTestnetSerializedPubkey,
-		InitialIncognito: TestnetInitPRV,
+		InitialIncognito:                    benchmark.GetInitTransaction(),
+		//InitialIncognito: TestnetInitPRV,
 	}
 	ChainTestParam = Params{
 		Name:                   TestnetName,

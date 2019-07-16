@@ -65,7 +65,7 @@ func (blockchain *BlockChain) VerifyPreSignBeaconBlock(block *BeaconBlock, isCom
 	}
 	//========Update best state with new block
 	snapShotBeaconCommittee := beaconBestState.BeaconCommittee
-	if err := beaconBestState.Update(block, blockchain); err != nil {
+	if err := beaconBestState.Update(block); err != nil {
 		return err
 	}
 	//========Post verififcation: verify new beaconstate with corresponding block
@@ -84,7 +84,7 @@ func (blockchain *BlockChain) InsertBeaconBlock(block *BeaconBlock, isValidated 
 	Logger.log.Infof("Check block existence for insert process %d, with hash %+v", block.Header.Height, blockHash)
 	isExist, _ := blockchain.config.DataBase.HasBeaconBlock(block.Header.Hash())
 	if isExist {
-		return NewBlockChainError(DuplicateBlockErr, errors.New("This block has been stored already"))
+		return NewBlockChainError(DuplicateBlockError, errors.New("This block has been stored already"))
 	}
 	Logger.log.Infof("Begin Insert new block %d, with hash %+v \n", block.Header.Height, blockHash)
 	if !isValidated {
@@ -125,7 +125,7 @@ func (blockchain *BlockChain) InsertBeaconBlock(block *BeaconBlock, isValidated 
 	Logger.log.Infof("Update BestState with Beacon Block %+v \n", blockHash)
 	//========Update best state with new block
 	snapShotBeaconCommittee := blockchain.BestState.Beacon.BeaconCommittee
-	if err := blockchain.BestState.Beacon.Update(block, blockchain); err != nil {
+	if err := blockchain.BestState.Beacon.Update(block); err != nil {
 		return err
 	}
 	if !isValidated {
@@ -447,7 +447,7 @@ func (bestStateBeacon *BestStateBeacon) VerifyBestStateWithBeaconBlock(block *Be
 		return NewBlockChainError(EpochError, errors.New("block height and Epoch is not compatiable"))
 	}
 	//=============Verify Stakers
-	newBeaconCandidate, newShardCandidate := GetStakingCandidate(*block)
+	newBeaconCandidate, newShardCandidate := getStakingCandidate(*block)
 	if !reflect.DeepEqual(newBeaconCandidate, []string{}) {
 		validBeaconCandidate := bestStateBeacon.GetValidStakers(newBeaconCandidate)
 		if !reflect.DeepEqual(validBeaconCandidate, newBeaconCandidate) {
@@ -641,8 +641,8 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 					bestStateBeacon.ShardPendingValidator[shardID], err = RemoveValidator(bestStateBeacon.ShardPendingValidator[shardID], inPubkeys)
 					fmt.Println("Beacon Process/Update After, ShardPendingValidator", bestStateBeacon.ShardPendingValidator[shardID])
 					if err != nil {
-						Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
-						return NewBlockChainError(UnExpectedError, err)
+						Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(CommitteeOrValidatorError, err))
+						return NewBlockChainError(CommitteeOrValidatorError, err)
 					}
 					// append in public key to committees
 					bestStateBeacon.ShardCommittee[shardID] = append(bestStateBeacon.ShardCommittee[shardID], inPubkeys...)
@@ -653,8 +653,8 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 					bestStateBeacon.ShardCommittee[shardID], err = RemoveValidator(bestStateBeacon.ShardCommittee[shardID], outPubkeys)
 					fmt.Println("Beacon Process/Update Remove Old, ShardCommitees", bestStateBeacon.ShardCommittee[shardID])
 					if err != nil {
-						Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
-						return NewBlockChainError(UnExpectedError, err)
+						Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(CommitteeOrValidatorError, err))
+						return NewBlockChainError(CommitteeOrValidatorError, err)
 					}
 				}
 			} else if l[3] == "beacon" {
@@ -662,8 +662,8 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 				if len(l[1]) > 0 {
 					bestStateBeacon.BeaconPendingValidator, err = RemoveValidator(bestStateBeacon.BeaconPendingValidator, inPubkeys)
 					if err != nil {
-						Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
-						return NewBlockChainError(UnExpectedError, err)
+						Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(CommitteeOrValidatorError, err))
+						return NewBlockChainError(CommitteeOrValidatorError, err)
 					}
 					bestStateBeacon.BeaconCommittee = append(bestStateBeacon.BeaconCommittee, inPubkeys...)
 				}
@@ -680,8 +680,8 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 		if l[0] == RandomAction {
 			temp, err := strconv.Atoi(l[1])
 			if err != nil {
-				Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
-				return NewBlockChainError(UnExpectedError, err)
+				Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(RandomError, err))
+				return NewBlockChainError(RandomError, err)
 			}
 			bestStateBeacon.CurrentRandomNumber = int64(temp)
 			Logger.log.Info("Random number found %+v", bestStateBeacon.CurrentRandomNumber)
@@ -786,177 +786,4 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 		Logger.log.Info("Swap: In committee %+v", beaconNewCommittees)
 	}
 	return nil
-}
-
-//===================================Util for Beacon=============================
-func GetStakingCandidate(beaconBlock BeaconBlock) ([]string, []string) {
-	beacon := []string{}
-	shard := []string{}
-	beaconBlockBody := beaconBlock.Body
-	for _, v := range beaconBlockBody.Instructions {
-		if len(v) < 1 {
-			continue
-		}
-		if v[0] == StakeAction && v[2] == "beacon" {
-			beacon = strings.Split(v[1], ",")
-		}
-		if v[0] == StakeAction && v[2] == "shard" {
-			shard = strings.Split(v[1], ",")
-		}
-	}
-
-	return beacon, shard
-}
-
-// Assumption:
-// validator and candidate public key encode as base58 string
-// assume that candidates are already been checked
-// Check validation of candidate in transaction
-func AssignValidator(candidates []string, rand int64, activeShards int) (map[byte][]string, error) {
-	pendingValidators := make(map[byte][]string)
-	for _, candidate := range candidates {
-		shardID := calculateCandidateShardID(candidate, rand, activeShards)
-		pendingValidators[shardID] = append(pendingValidators[shardID], candidate)
-	}
-	return pendingValidators, nil
-}
-
-// AssignValidatorShard, param for better convenice than AssignValidator
-func AssignValidatorShard(currentCandidates map[byte][]string, shardCandidates []string, rand int64, activeShards int) error {
-	for _, candidate := range shardCandidates {
-		shardID := calculateCandidateShardID(candidate, rand, activeShards)
-		currentCandidates[shardID] = append(currentCandidates[shardID], candidate)
-	}
-	return nil
-}
-
-func VerifyValidator(candidate string, rand int64, shardID byte, activeShards int) (bool, error) {
-	res := calculateCandidateShardID(candidate, rand, activeShards)
-	if shardID == res {
-		return true, nil
-	} else {
-		return false, nil
-	}
-}
-
-// Formula ShardID: LSB[hash(candidatePubKey+randomNumber)]
-// Last byte of hash(candidatePubKey+randomNumber)
-func calculateCandidateShardID(candidate string, rand int64, activeShards int) (shardID byte) {
-
-	seed := candidate + strconv.Itoa(int(rand))
-	hash := common.HashB([]byte(seed))
-	// fmt.Println("Candidate public key", candidate)
-	// fmt.Println("Hash of candidate serialized pubkey and random number", hash)
-	// fmt.Printf("\"%d\",\n", hash[len(hash)-1])
-	// fmt.Println("Shard to be assign", hash[len(hash)-1])
-	shardID = byte(int(hash[len(hash)-1]) % activeShards)
-	Logger.log.Critical("calculateCandidateShardID/shardID", shardID)
-	return shardID
-}
-
-// consider these list as queue structure
-// unqueue a number of validator out of currentValidators list
-// enqueue a number of validator into currentValidators list <=> unqueue a number of validator out of pendingValidators list
-// return value: #1 remaining pendingValidators, #2 new currentValidators #3 swapped out validator, #4 incoming validator #5 error
-func SwapValidator(pendingValidators []string, currentValidators []string, maxCommittee int, offset int) ([]string, []string, []string, []string, error) {
-	if maxCommittee < 0 || offset < 0 {
-		panic("committee can't be zero")
-	}
-	if offset == 0 {
-		return []string{}, pendingValidators, currentValidators, []string{}, errors.New("can't not swap 0 validator")
-	}
-	// if number of pending validator is less or equal than offset, set offset equal to number of pending validator
-	if offset > len(pendingValidators) {
-		offset = len(pendingValidators)
-	}
-	// if swap offset = 0 then do nothing
-	if offset == 0 {
-		return pendingValidators, currentValidators, []string{}, []string{}, errors.New("no pending validator for swapping")
-	}
-	if offset > maxCommittee {
-		return pendingValidators, currentValidators, []string{}, []string{}, errors.New("trying to swap too many validator")
-	}
-	tempValidators := []string{}
-	swapValidator := []string{}
-	// if len(currentValidator) < maxCommittee then push validator until it is full
-	if len(currentValidators) < maxCommittee {
-		diff := maxCommittee - len(currentValidators)
-		if diff >= offset {
-			tempValidators = append(tempValidators, pendingValidators[:offset]...)
-			currentValidators = append(currentValidators, tempValidators...)
-			pendingValidators = pendingValidators[offset:]
-			return pendingValidators, currentValidators, swapValidator, tempValidators, nil
-		} else {
-			offset -= diff
-			tempValidators := append(tempValidators, pendingValidators[:diff]...)
-			pendingValidators = pendingValidators[diff:]
-			currentValidators = append(currentValidators, tempValidators...)
-		}
-	}
-	fmt.Println("Swap Validator/Before: pendingValidators", pendingValidators)
-	fmt.Println("Swap Validator/Before: currentValidators", currentValidators)
-	fmt.Println("Swap Validator: offset", offset)
-	// out pubkey: swapped out validator
-	swapValidator = append(swapValidator, currentValidators[:offset]...)
-	// unqueue validator with index from 0 to offset-1 from currentValidators list
-	currentValidators = currentValidators[offset:]
-	// in pubkey: unqueue validator with index from 0 to offset-1 from pendingValidators list
-	tempValidators = append(tempValidators, pendingValidators[:offset]...)
-	// enqueue new validator to the remaning of current validators list
-	currentValidators = append(currentValidators, pendingValidators[:offset]...)
-	// save new pending validators list
-	pendingValidators = pendingValidators[offset:]
-	fmt.Println("Swap Validator: pendingValidators", pendingValidators)
-	fmt.Println("Swap Validator: currentValidators", currentValidators)
-	fmt.Println("Swap Validator: swapValidator", swapValidator)
-	fmt.Println("Swap Validator: tempValidators", tempValidators)
-	if len(currentValidators) > maxCommittee {
-		panic("Length of current validator greater than max committee in Swap validator ")
-	}
-	return pendingValidators, currentValidators, swapValidator, tempValidators, nil
-}
-
-// return: #param1: validator list after remove
-// in parameter: #param1: list of full validator
-// in parameter: #param2: list of removed validator
-// removed validators list must be a subset of full validator list and it must be first in the list
-func RemoveValidator(validators []string, removedValidators []string) ([]string, error) {
-	// if number of pending validator is less or equal than offset, set offset equal to number of pending validator
-	if len(removedValidators) > len(validators) {
-		return validators, errors.New("trying to remove too many validators")
-	}
-
-	for index, validator := range removedValidators {
-		if strings.Compare(validators[index], validator) == 0 {
-			validators = validators[1:]
-		} else {
-			return validators, errors.New("remove Validator with Wrong Format")
-		}
-	}
-	return validators, nil
-}
-
-/*
-	Shuffle Candidate:
-		Candidate Value Concatenate with Random Number
-		Then Hash and Obtain Hash Value
-		Sort Hash Value Then Re-arrange Candidate corresponding to Hash Value
-*/
-func ShuffleCandidate(candidates []string, rand int64) ([]string, error) {
-	fmt.Println("Beacon Process/Shuffle Candidate: Candidate Before Sort ", candidates)
-	hashes := []string{}
-	m := make(map[string]string)
-	sortedCandidate := []string{}
-	for _, candidate := range candidates {
-		seed := candidate + strconv.Itoa(int(rand))
-		hash := common.HashB([]byte(seed))
-		hashes = append(hashes, string(hash[:32]))
-		m[string(hash[:32])] = candidate
-	}
-	sort.Strings(hashes)
-	for _, candidate := range m {
-		sortedCandidate = append(sortedCandidate, candidate)
-	}
-	fmt.Println("Beacon Process/Shuffle Candidate: Candidate After Sort ", sortedCandidate)
-	return sortedCandidate, nil
 }

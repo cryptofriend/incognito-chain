@@ -277,7 +277,7 @@ func (blockchain *BlockChain) initShardState(shardID byte) error {
 	initBlock = *blockchain.config.ChainParams.GenesisShardBlock
 	initBlock.Header.ShardID = shardID
 
-	_, newShardCandidate := GetStakingCandidate(*blockchain.config.ChainParams.GenesisBeaconBlock)
+	_, newShardCandidate := getStakingCandidate(*blockchain.config.ChainParams.GenesisBeaconBlock)
 
 	blockchain.BestState.Shard[shardID].ShardCommittee = append(blockchain.BestState.Shard[shardID].ShardCommittee, newShardCandidate[int(shardID)*blockchain.config.ChainParams.MaxShardCommitteeSize:(int(shardID)*blockchain.config.ChainParams.MaxShardCommitteeSize)+blockchain.config.ChainParams.MaxShardCommitteeSize]...)
 

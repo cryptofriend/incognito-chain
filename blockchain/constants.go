@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 )
+
 // Fixed network params
 const (
 	BlockVersion              = 1 // BlockVersion is the current latest supported block version.
@@ -17,8 +18,9 @@ const (
 	DefaultMaxBlockSyncTime   = 1 * time.Second  // in second
 	DefaultCacheCleanupTime   = 30 * time.Second // in second
 	WorkerNumber              = 5
-	MinCommitteeSize         = 3 // below 3 failed to achieve pbft consensus
+	MinCommitteeSize          = 3 // below 3 failed to achieve pbft consensus
 )
+
 // Action for Instruction
 const (
 	SetAction    = "set"
@@ -27,6 +29,7 @@ const (
 	RandomAction = "random"
 	StakeAction  = "stake"
 )
+
 // VARIABLE & CONSTANT network MAINNET
 const (
 	Mainnet                    = 0x01
@@ -108,6 +111,7 @@ func init() {
 		}
 	}
 }
+
 // END VARIABLE & CONSTANT network TESTNET
 var TestnetInitPRV = []string{
 	`{  

@@ -96,24 +96,6 @@ func CreateCrossShardByteArray(txList []metadata.Transaction, fromShardID byte) 
 
 	return crossIDs
 }
-
-/*
-	Create Swap Action
-	Return param:
-	#1: swap instruction
-	#2: new pending validator list after swapped
-	#3: new committees after swapped
-	#4: error
-*/
-func CreateSwapAction(pendingValidator []string, commitees []string, committeeSize int, shardID byte) ([]string, []string, []string, error) {
-	newPendingValidator, newShardCommittees, shardSwapedCommittees, shardNewCommittees, err := SwapValidator(pendingValidator, commitees, committeeSize, common.OFFSET)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	swapInstruction := []string{"swap", strings.Join(shardNewCommittees, ","), strings.Join(shardSwapedCommittees, ","), "shard", strconv.Itoa(int(shardID))}
-	return swapInstruction, newPendingValidator, newShardCommittees, nil
-}
-
 /*
 	Action Generate From Transaction:
 	- Stake

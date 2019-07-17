@@ -80,7 +80,7 @@ func (blockgen *BlkTmplGenerator) NewBlockShard(producerKeySet *incognitokey.Key
 			Logger.log.Critical("shardCommittee", shardCommittee)
 			Logger.log.Critical("blockgen.chain.BestState.Shard[shardID].MaxShardCommitteeSize", blockgen.chain.BestState.Shard[shardID].ShardCommitteeSize)
 			Logger.log.Critical("shardID", shardID)
-			swapInstruction, shardPendingValidator, shardCommittee, err = CreateSwapAction(shardPendingValidator, shardCommittee, blockgen.chain.BestState.Shard[shardID].ShardCommitteeSize, shardID)
+			swapInstruction, shardPendingValidator, shardCommittee, err = createSwapAction(shardPendingValidator, shardCommittee, blockgen.chain.BestState.Shard[shardID].ShardCommitteeSize, shardID)
 			if err != nil {
 				Logger.log.Error(err)
 				return nil, err

@@ -131,6 +131,67 @@ func swapValidator(pendingValidators []string, currentValidators []string, maxCo
 	return pendingValidators, currentValidators, swapValidator, tempValidators, nil
 }
 
+// consider these list as queue structure
+// unqueue a number of validator out of currentValidators list
+// enqueue a number of validator into currentValidators list <=> unqueue a number of validator out of pendingValidators list
+// return value: #1 remaining pendingValidators, #2 new currentValidators #3 swapped out validator, #4 incoming validator #5 error
+func swapValidatorWithMinMax(pendingValidators []string, currentValidators []string, maxCommittee int, minCommittee int, offset int) ([]string, []string, []string, []string, error) {
+	if maxCommittee < 0 || offset < 0 || minCommittee < 0 {
+		panic("committee can't be zero")
+	}
+	if offset == 0 {
+		return []string{}, pendingValidators, currentValidators, []string{}, errors.New("can't not swap 0 validator")
+	}
+	// if number of pending validator is less or equal than offset, set offset equal to number of pending validator
+	if offset > len(pendingValidators) {
+		offset = len(pendingValidators)
+	}
+	// if swap offset = 0 then do nothing
+	if offset == 0 {
+		return pendingValidators, currentValidators, []string{}, []string{}, errors.New("no pending validator for swapping")
+	}
+	if offset > maxCommittee {
+		return pendingValidators, currentValidators, []string{}, []string{}, errors.New("trying to swap too many validator")
+	}
+	tempValidators := []string{}
+	swapValidator := []string{}
+	// if len(currentValidator) < maxCommittee then push validator until it is full
+	if len(currentValidators) < maxCommittee {
+		diff := maxCommittee - len(currentValidators)
+		if diff >= offset {
+			tempValidators = append(tempValidators, pendingValidators[:offset]...)
+			currentValidators = append(currentValidators, tempValidators...)
+			pendingValidators = pendingValidators[offset:]
+			return pendingValidators, currentValidators, swapValidator, tempValidators, nil
+		} else {
+			offset -= diff
+			tempValidators := append(tempValidators, pendingValidators[:diff]...)
+			pendingValidators = pendingValidators[diff:]
+			currentValidators = append(currentValidators, tempValidators...)
+		}
+	}
+	fmt.Println("Swap Validator/Before: pendingValidators", pendingValidators)
+	fmt.Println("Swap Validator/Before: currentValidators", currentValidators)
+	fmt.Println("Swap Validator: offset", offset)
+	// out pubkey: swapped out validator
+	swapValidator = append(swapValidator, currentValidators[:offset]...)
+	// unqueue validator with index from 0 to offset-1 from currentValidators list
+	currentValidators = currentValidators[offset:]
+	// in pubkey: unqueue validator with index from 0 to offset-1 from pendingValidators list
+	tempValidators = append(tempValidators, pendingValidators[:offset]...)
+	// enqueue new validator to the remaning of current validators list
+	currentValidators = append(currentValidators, pendingValidators[:offset]...)
+	// save new pending validators list
+	pendingValidators = pendingValidators[offset:]
+	fmt.Println("Swap Validator: pendingValidators", pendingValidators)
+	fmt.Println("Swap Validator: currentValidators", currentValidators)
+	fmt.Println("Swap Validator: swapValidator", swapValidator)
+	fmt.Println("Swap Validator: tempValidators", tempValidators)
+	if len(currentValidators) > maxCommittee {
+		panic("Length of current validator greater than max committee in Swap validator ")
+	}
+	return pendingValidators, currentValidators, swapValidator, tempValidators, nil
+}
 // return: #param1: validator list after remove
 // in parameter: #param1: list of full validator
 // in parameter: #param2: list of removed validator
@@ -157,7 +218,7 @@ func removeValidator(validators []string, removedValidators []string) ([]string,
 		Then Hash and Obtain Hash Value
 		Sort Hash Value Then Re-arrange Candidate corresponding to Hash Value
 */
-func ShuffleCandidate(candidates []string, rand int64) ([]string, error) {
+func shuffleCandidate(candidates []string, rand int64) ([]string, error) {
 	fmt.Println("Beacon Process/Shuffle Candidate: Candidate Before Sort ", candidates)
 	hashes := []string{}
 	m := make(map[string]string)

@@ -755,7 +755,7 @@ func (bestStateBeacon *BestStateBeacon) Update(newBlock *BeaconBlock) error {
 			bestStateBeacon.CandidateShardWaitingForCurrentRandom = []string{}
 			// Shuffle candidate
 			// shuffle CandidateBeaconWaitingForCurrentRandom with current random number
-			newBeaconPendingValidator, err := ShuffleCandidate(bestStateBeacon.CandidateBeaconWaitingForCurrentRandom, bestStateBeacon.CurrentRandomNumber)
+			newBeaconPendingValidator, err := shuffleCandidate(bestStateBeacon.CandidateBeaconWaitingForCurrentRandom, bestStateBeacon.CurrentRandomNumber)
 			if err != nil {
 				Logger.log.Errorf("Blockchain Error %+v", NewBlockChainError(UnExpectedError, err))
 				return NewBlockChainError(UnExpectedError, err)

@@ -140,7 +140,7 @@ func swapValidatorWithMinMax(pendingValidators []string, currentValidators []str
 		panic("committee can't be zero")
 	}
 	if offset == 0 {
-		return []string{}, pendingValidators, currentValidators, []string{}, errors.New("can't not swap 0 validator")
+		return []string{}, pendingValidators, currentValidators, []string{}, fmt.Errorf("Expect to swap more than 0 validator")
 	}
 	// if number of pending validator is less or equal than offset, set offset equal to number of pending validator
 	if offset > len(pendingValidators) {
@@ -148,10 +148,10 @@ func swapValidatorWithMinMax(pendingValidators []string, currentValidators []str
 	}
 	// if swap offset = 0 then do nothing
 	if offset == 0 {
-		return pendingValidators, currentValidators, []string{}, []string{}, errors.New("no pending validator for swapping")
+		return pendingValidators, currentValidators, []string{}, []string{}, fmt.Errorf("Expect more than 0 pending validator for swapping")
 	}
 	if offset > maxCommittee {
-		return pendingValidators, currentValidators, []string{}, []string{}, errors.New("trying to swap too many validator")
+		return pendingValidators, currentValidators, []string{}, []string{}, fmt.Errorf("Expect swap less than %+v validator but get input to swap %+v", maxCommittee, offset)
 	}
 	tempValidators := []string{}
 	swapValidator := []string{}

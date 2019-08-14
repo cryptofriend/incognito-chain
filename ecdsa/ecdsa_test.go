@@ -12,6 +12,7 @@ import (
 func TestECDSASign(t *testing.T) {
 	data := privacy.RandBytes(100)
 	hash := common.HashB(data)
+	fmt.Printf("Message hash: %v\n", hash)
 
 	ecdsaPrivateKey, err := crypto.GenerateKey()
 	if err != nil {
@@ -21,8 +22,10 @@ func TestECDSASign(t *testing.T) {
 
 	ecdsaPublicKey := ecdsaPrivateKey.PublicKey
 	ecdsaPublicKeyBytes := crypto.CompressPubkey(&ecdsaPublicKey)
+	fmt.Printf("Public key bytes: %v\n", ecdsaPublicKeyBytes)
 
 	sig, err := ECDSASign(hash, ecdsaPrivateKey.D.Bytes())
+	fmt.Printf("Signature bytes: %v\n", sig)
 	if err != nil {
 		fmt.Printf("Error when signing: %v\n", err)
 	}
